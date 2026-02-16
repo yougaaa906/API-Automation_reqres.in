@@ -1,67 +1,48 @@
-# 流水线名称：清晰体现双场景接口关联测试
-name: API Automation Test (Auth + Business)
+# -*- coding: utf-8 -*-
+"""
+Core configuration file for API automation testing
+Unified management of multi-environment, request params, test accounts
+Compatible with local/CI environment (ReqRes + JSONPlaceholder)
+"""
+import os
 
-# 触发条件：push/pull_request到main分支（贴合实战）
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+# Environment selection: CI env var > local default (test)
+TEST_ENV = os.getenv("TEST_ENV", "test")
 
-# 单个Job：简化流程，聚焦核心（多Job适合复杂场景，这里没必要）
-jobs:
-  api-test:
-    runs-on: ubuntu-latest
-    # 环境变量：传递给config.py，统一配置
-    env:
-      TEST_ENV: "test"
-      REPORT_PATH: "./test-report.html"
-      REQRES_MOCK_TOKEN: "mock_token_ci_123456" # CI专用Mock Token
-    
-    steps:
-      # 步骤1：拉取代码到GitHub服务器
-      - name: Checkout Repository Code
-        uses: actions/checkout@v4
+# Multi-environment Base URL configuration (two scenarios)
+BASE_URLS = {
+    "reqres": {
+        "test": "https://reqres.in",
+        "prod": "https://reqres.in"
+    },
+    "jsonplaceholder": {
+        "test": "https://jsonplaceholder.typicode.com",
+        "prod": "https://jsonplaceholder.typicode.com"
+    }
+}
 
-      # 步骤2：配置Python环境（和本地一致的3.9版本，避免兼容问题）
-      - name: Set Up Python 3.9
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
-          # 缓存依赖：加速CI运行（避免每次都装包）
-          cache: 'pip'
-          cache-dependency-path: 'requirements.txt'
+# Quick access to Base URL for each scenario
+REQRES_BASE_URL = BASE_URLS["reqres"][TEST_ENV]
+JSONPLACEHOLDER_BASE_URL = BASE_URLS["jsonplaceholder"][TEST_ENV]
 
-      # 步骤3：安装依赖（核心依赖+报告依赖）
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+# Global request configuration
+REQUEST_TIMEOUT = 15  # Seconds (CI network tolerance)
+SSL_VERIFY = False    # Disable SSL verify for test APIs
+COMMON_HEADERS = {
+    "Content-Type": "application/json;charset=UTF-8",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*"
+}
 
-      # 步骤4：执行所有测试用例（两个文件都跑，生成统一报告）
-      - name: Run All API Tests
-        run: |
-          pytest tests/ \
-            -v \
-            --html=${{ env.REPORT_PATH }} \
-            --self-contained-html \
-            --tb=short # 简化错误日志，CI输出更整洁
-        # 即使单个用例失败，也继续执行（方便看全量结果）
-        continue-on-error: false
+# ReqRes test account (official test credentials)
+REQRES_TEST_USER = {
+    "email": "eve.holt@reqres.in",
+    "password": "cityslicka"
+}
+# CI mock token (avoid ReqRes POST API rate limit)
+REQRES_MOCK_TOKEN = os.getenv("REQRES_MOCK_TOKEN", "mock_token_123456789")
 
-      # 步骤5：上传测试报告（无论成功/失败都上传，方便排查）
-      - name: Upload Test Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: api-automation-test-report
-          path: ${{ env.REPORT_PATH }}
-          retention-days: 7 # 报告保留7天（平衡存储）
-          if: always() # 关键：测试失败也上传报告
-
-      # 可选步骤：打印测试结果摘要（方便快速查看）
-      - name: Print Test Summary
-        run: |
-          echo "==================== Test Summary ===================="
-          echo "Report path: ${{ env.REPORT_PATH }}"
-          echo "GitHub Actions Run ID: ${{ github.run_id }}"
-          echo "======================================================"
+# Test report configuration (output to public directory for GitHub Pages)
+PUBLIC_DIR = "./public"
+REPORT_PATH = os.getenv("REPORT_PATH", f"{PUBLIC_DIR}/test-report.html")
+REPORT_ARGS = "--html={} --self-contained-html".format(REPORT_PATH)
