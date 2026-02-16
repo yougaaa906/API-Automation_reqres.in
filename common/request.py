@@ -2,10 +2,12 @@
 """
 HTTP Request Wrapper for API Automation Testing
 Encapsulates GET/POST/PUT methods with standardized headers and error handling
+Added login method to dynamically obtain valid authentication Token
 Adapted for execution in GitHub Actions environment
 """
 import requests
-from config.config import COMMON_HEADERS, REQUEST_TIMEOUT, SSL_VERIFY
+import time
+from config.config import COMMON_HEADERS, REQUEST_TIMEOUT, SSL_VERIFY, URL, TEST_USERNAME, TEST_PASSWORD
 
 # Disable urllib3 insecure request warnings (for SSL verification disabled)
 requests.packages.urllib3.disable_warnings()
@@ -13,7 +15,7 @@ requests.packages.urllib3.disable_warnings()
 
 class HttpRequest:
     """
-    Encapsulates HTTP GET, POST and PUT methods with common headers handling
+    Encapsulates HTTP GET, POST, PUT methods and login logic with common headers handling
     All configurations are loaded from config file for environment adaptability
     """
 
@@ -137,5 +139,53 @@ class HttpRequest:
             return response
         except Exception as e:
             raise Exception(f"PUT request failed - URL: {url}, Error: {str(e)}")
+
+    @staticmethod
+    def login(url=None, login_data=None, retry_times=2):
+        """
+        Send login request to dynamically obtain valid authentication Token
+        Added retry mechanism to handle occasional login failures
+
+        Args:
+            url (str, optional): Login API URL (default: f"{URL}/api/login" from config)
+            login_data (dict, optional): Login credentials (default: TEST_USERNAME/TEST_PASSWORD from config)
+            retry_times (int, optional): Retry times when login fails (default: 2)
+
+        Returns:
+            str: Valid Bearer Token
+
+        Raises:
+            Exception: If login fails after all retries or Token not returned
+        """
+        # Set default values (fallback to config if parameters not provided)
+        login_url = url if url else f"{URL}/api/login"
+        credentials = login_data if login_data else {
+            "email": TEST_USERNAME,
+            "password": TEST_PASSWORD
+        }
+
+        # Retry logic for robust login
+        for attempt in range(retry_times + 1):
+            try:
+                # Use encapsulated POST method to send login request
+                response = HttpRequest.post(url=login_url, json=credentials)
+                response.raise_for_status()  # Trigger exception for HTTP error status codes (4xx/5xx)
+                res_data = response.json()
+
+                # Verify Token exists in response
+                if "token" not in res_data:
+                    raise Exception("Login success but no Token returned in response")
+
+                valid_token = res_data["token"]
+                print(f"✅ Login successful (attempt {attempt+1}), obtained valid Token: {valid_token}")
+                return valid_token
+
+            except Exception as e:
+                # Raise final exception if all retries failed
+                if attempt == retry_times:
+                    raise Exception(f"❌ Login failed after {retry_times+1} attempts - Error: {str(e)}")
+                # Retry after short delay
+                print(f"⚠️ Login attempt {attempt+1} failed, retrying in 1 second... Error: {str(e)}")
+                time.sleep(1)
 
 http = HttpRequest()
