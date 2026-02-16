@@ -1,4 +1,3 @@
-
 """
 Configuration file for API automation test (Reqres.in)
 Contains environment constants and common request headers
@@ -9,13 +8,20 @@ import os
 # -------------------------- API Base Configuration --------------------------
 # API base URL - Priority: GitHub Actions env > hardcoded default
 API_BASE_URL = os.getenv("API_BASE_URL", "https://reqres.in")
+# Alias for API_BASE_URL (compatible with login method in request.py)
+URL = API_BASE_URL
 
 # Authentication credentials - Priority: GitHub Actions secrets > hardcoded default
 # Note: In production, always use GitHub Secrets instead of hardcoding
 USERNAME = os.getenv("API_TEST_USERNAME", "yougaaa@163.com")
 PASSWORD = os.getenv("API_TEST_PASSWORD", "zhangruijie906")
 
-# Fixed authentication token for API requests
+# Alias for login credentials (compatible with reqres.in official test account)
+# Priority: Custom account > reqres.in official test account
+TEST_USERNAME = os.getenv("API_TEST_USERNAME", "eve.holt@reqres.in")
+TEST_PASSWORD = os.getenv("API_TEST_PASSWORD", "cityslicka")
+
+# Fixed authentication token for API requests (deprecated, use dynamic login instead)
 FIXED_TOKEN = os.getenv("API_FIXED_TOKEN", "QpwL5tke4Pnpja7X4")
 
 # -------------------------- Common Request Headers --------------------------
