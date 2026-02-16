@@ -16,7 +16,6 @@ from config.config import (
     REQRES_MOCK_TOKEN,
     REQRES_TEST_USER
 )
-# Import logger (replace print)
 from config.log_config import logger
 
 # Disable SSL warnings for test environment
@@ -46,18 +45,74 @@ class HttpRequest:
             resp = self.post(login_url, json=login_payload)
             if resp.status_code == 200:
                 self.token = resp.json()["token"]
-                logger.info(f"ReqRes login success | Token: {self.token[:8]}...")  # Replace print
+                logger.info(f"ReqRes login success | Token: {self.token[:8]}...")
                 return self.token
             else:
-                logger.warning(f"ReqRes login failed (status code {resp.status_code}), use mock token")  # Replace print
+                logger.warning(f"ReqRes login failed (status code {resp.status_code}), use mock token")
                 self.token = REQRES_MOCK_TOKEN
                 return self.token
         except Exception:
-            logger.warning("ReqRes login request exception, use mock token")  # Replace print
+            logger.warning("ReqRes login request exception, use mock token")
             self.token = REQRES_MOCK_TOKEN
             return self.token
 
-    # ... 其余GET/POST/switch方法不变 ...
+    def get(self, url: str, headers: dict = None) -> requests.Response:
+        """
+        Generic GET request: support full URL/relative path
+        :param url: API URL (full/relative)
+        :param headers: Custom headers (optional)
+        :return: requests.Response
+        """
+        full_url = url if url.startswith("http") else f"{self.base_url}{url}"
+        final_headers = self.headers.copy()
+        if headers:
+            final_headers.update(headers)
+
+        try:
+            return requests.get(
+                url=full_url,
+                headers=final_headers,
+                timeout=REQUEST_TIMEOUT,
+                verify=SSL_VERIFY
+            )
+        except Exception as e:
+            raise Exception(f"GET request failed | URL: {full_url} | Error: {str(e)}")
+
+    def post(self, url: str, json: dict = None, headers: dict = None) -> requests.Response:
+        """
+        Generic POST request: support full URL/relative path
+        :param url: API URL (full/relative)
+        :param json: POST payload (JSON format)
+        :param headers: Custom headers (optional)
+        :return: requests.Response
+        """
+        full_url = url if url.startswith("http") else f"{self.base_url}{url}"
+        final_headers = self.headers.copy()
+        if headers:
+            final_headers.update(headers)
+
+        try:
+            return requests.post(
+                url=full_url,
+                json=json,
+                headers=final_headers,
+                timeout=REQUEST_TIMEOUT,
+                verify=SSL_VERIFY
+            )
+        except Exception as e:
+            raise Exception(f"POST request failed | URL: {full_url} | Error: {str(e)}")
+
+ 
+    def switch_to_reqres(self):
+        """Switch base URL to ReqRes environment"""
+        self.base_url = REQRES_BASE_URL
+        logger.info(f"Switched to ReqRes base URL: {self.base_url}")
+
+    def switch_to_jsonplaceholder(self):
+        """Switch base URL to JSONPlaceholder environment"""
+        self.base_url = JSONPLACEHOLDER_BASE_URL
+        logger.info(f"Switched to JSONPlaceholder base URL: {self.base_url}")
+    # -------------------------------------------------------------------
 
 # Global request instance (import and use directly in test cases)
 http = HttpRequest()
