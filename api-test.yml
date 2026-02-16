@@ -1,0 +1,40 @@
+name: Saucedemo API Automation Test
+# 触发条件：push/pull_request到main分支
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  api-test:
+    # 运行环境：Ubuntu最新版（和本地兼容）
+    runs-on: ubuntu-latest
+    steps:
+      # 步骤1：拉取代码到GitHub服务器
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 步骤2：配置Python环境（和本地一致的3.9版本）
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      # 步骤3：安装依赖（和本地一致）
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 步骤4：执行测试，生成HTML报告
+      - name: Run API tests
+        run: pytest tests/ -v --html=test-report.html --self-contained-html
+
+      # 步骤5：上传测试报告为流水线产物（在线可查看）
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-report
+          path: test-report.html
+          retention-days: 7  # 报告保留7天
