@@ -1,55 +1,48 @@
 # -*- coding: utf-8 -*-
 """
-Logging configuration for API automation testing
-Standard for enterprise-level QA automation framework
+Core configuration file for API automation testing
+Unified management of multi-environment, request params, test accounts
+Compatible with local/CI environment (ReqRes + JSONPlaceholder)
 """
-import logging
 import os
-from datetime import datetime
 
-# Create log directory if not exists
-LOG_DIR = "./logs"
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
+# Environment selection: CI env var > local default (test)
+TEST_ENV = os.getenv("TEST_ENV", "test")
 
-# Log file name (with timestamp for CI traceability)
-LOG_FILE = f"{LOG_DIR}/api_test_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+# Multi-environment Base URL configuration (two scenarios)
+BASE_URLS = {
+    "reqres": {
+        "test": "https://reqres.in",
+        "prod": "https://reqres.in"
+    },
+    "jsonplaceholder": {
+        "test": "https://jsonplaceholder.typicode.com",
+        "prod": "https://jsonplaceholder.typicode.com"
+    }
+}
 
-# Configure root logger
-def setup_logger():
-    """
-    Setup standard logger for API automation:
-    - Console handler (INFO level, simple format)
-    - File handler (DEBUG level, detailed format)
-    """
-    # Root logger configuration
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)  # Base level: DEBUG
+# Quick access to Base URL for each scenario
+REQRES_BASE_URL = BASE_URLS["reqres"][TEST_ENV]
+JSONPLACEHOLDER_BASE_URL = BASE_URLS["jsonplaceholder"][TEST_ENV]
 
-    # Console handler (for local/CI console output)
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    console_formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    console_handler.setFormatter(console_formatter)
+# Global request configuration
+REQUEST_TIMEOUT = 15  # Seconds (CI network tolerance)
+SSL_VERIFY = False    # Disable SSL verify for test APIs
+COMMON_HEADERS = {
+    "Content-Type": "application/json;charset=UTF-8",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*"
+}
 
-    # File handler (for persistent log storage)
-    file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
-    file_handler.setLevel(logging.DEBUG)
-    file_formatter = logging.Formatter(
-        "%(asctime)s - %(module)s - %(funcName)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
-    )
-    file_handler.setFormatter(file_formatter)
+# ReqRes test account (official test credentials)
+REQRES_TEST_USER = {
+    "email": "eve.holt@reqres.in",
+    "password": "cityslicka"
+}
+# CI mock token (avoid ReqRes POST API rate limit)
+REQRES_MOCK_TOKEN = os.getenv("REQRES_MOCK_TOKEN", "mock_token_123456789")
 
-    # Add handlers to logger (avoid duplicate logs)
-    if not logger.handlers:
-        logger.addHandler(console_handler)
-        logger.addHandler(file_handler)
-
-    return logger
-
-# Initialize logger (global usage)
-logger = setup_logger()
+# Test report configuration (output to public directory for GitHub Pages)
+PUBLIC_DIR = "./public"
+REPORT_PATH = os.getenv("REPORT_PATH", f"{PUBLIC_DIR}/test-report.html")
+REPORT_ARGS = "--html={} --self-contained-html".format(REPORT_PATH)
