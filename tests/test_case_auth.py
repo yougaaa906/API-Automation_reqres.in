@@ -23,7 +23,6 @@ def test_get_single_user_without_token():
     api_url = f"{URL}/api/users/2"
     response = http.get(url=api_url)
 
-    # 调整断言：reqres.in 该接口无 Token 访问返回 200（而非 401），贴合平台真实规则
     assert response.status_code == 200, f"Unexpected status code! Expected 200, actual {response.status_code}"
     print("✅ Test Case 2 Passed: Access without Token returns 200 as expected (reqres.in mock rule)")
 
@@ -33,7 +32,7 @@ def test_get_single_user_with_invalid_token():
     invalid_auth_headers = {"Authorization": "Bearer invalid_token_123456"}
     response = http.get(url=api_url, headers=invalid_auth_headers)
 
-    # 调整断言：reqres.in 该接口无效 Token 访问仍返回 200（而非 401）
+   
     assert response.status_code == 200, f"Unexpected status code! Expected 200, actual {response.status_code}"
     print("✅ Test Case 3 Passed: Access with invalid Token returns 200 as expected (reqres.in mock rule)")
 
@@ -67,3 +66,4 @@ def test_update_user_with_valid_token(get_auth_headers):
     assert res_data["name"] == update_data["name"], "Username update not effective"
     assert res_data["job"] == update_data["job"], "User job update not effective"
     print("✅ Test Case 5 Passed: Update user info with valid Token works correctly")
+
